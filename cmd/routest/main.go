@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sort"
@@ -57,25 +57,12 @@ func main() {
 
 	var alertmanagerConfig string
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		scanner := bufio.NewScanner(os.Stdin)
-		var alertmanagerConfigBuilder strings.Builder
-
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			if line == "" {
-				break
-			}
-
-			alertmanagerConfigBuilder.WriteString(line)
-			alertmanagerConfigBuilder.WriteString("\n")
+		bytes, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatalf("failed to read from stdin: %s", err)
 		}
 
-		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
-		}
-
-		alertmanagerConfig = alertmanagerConfigBuilder.String()
+		alertmanagerConfig = string(bytes)
 	}
 
 	var c config.Config
@@ -83,15 +70,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for name, l := range labelSets {
-		log.Printf("Testing: %s", name)
+	for _, labelSet := range labelSets {
+		log.Printf("Testing with labels: %s", routestOpts.labels)
 
-		if err := l.Validate(); err != nil {
+		if err := labelSet.Validate(); err != nil {
 			log.Fatal(err)
 		}
 
 		routeTree := dispatch.NewRoute(c.Route, nil)
-		routes := routeTree.Match(l)
+		routes := routeTree.Match(labelSet)
 
 		results := []string{}
 		for _, route := range routes {
@@ -105,7 +92,7 @@ func main() {
 
 		sort.Strings(results)
 		for _, receiver := range results {
-			log.Printf("Send to receiver: %s", receiver)
+			log.Printf("Matches receiver: %s", receiver)
 		}
 	}
 }
