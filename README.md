@@ -15,7 +15,7 @@ _This tool will only be able to read a config file from `stdin` at the moment._
 
 ### Download and run
 
-1. Download (using `v0.1.3` as an example):
+1. Download (using version `0.1.0` as an example):
 
 ```bash
 curl -LO https://github.com/mikejoh/routest/releases/download/0.1.0/routest_0.1.0_linux_amd64.tar.gz
@@ -24,13 +24,13 @@ curl -LO https://github.com/mikejoh/routest/releases/download/0.1.0/routest_0.1.
 2. Unpack:
 
 ```bash
-tar xzvf rke2diff_0.1.3_linux_amd64.tar.gz
+tar xzvf routest_0.1.3_linux_amd64.tar.gz
 ```
 
 3. Run:
 
 ```bash
-./rke2diff -version
+./routest -version
 ```
 
 ## Usage
