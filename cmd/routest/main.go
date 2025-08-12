@@ -26,7 +26,7 @@ type LabelSets map[string]model.LabelSet
 func main() {
 	var routestOpts routestOptions
 	flag.BoolVar(&routestOpts.version, "version", false, "Print the version number.")
-	flag.StringVar(&routestOpts.labels, "labels", "", "Comma separated labels in the form of: label=value. Example: -label-set=env=dev,severity=critical")
+	flag.StringVar(&routestOpts.labels, "labels", "", "Comma separated labels in the form of: label=value. Example: -labels=env=dev,severity=critical")
 	flag.Parse()
 
 	if routestOpts.version {
