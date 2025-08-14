@@ -119,7 +119,7 @@ func main() {
 
 		sort.Strings(results)
 		for _, receiver := range results {
-			slog.Info("Matches receiver", "receiver", receiver)
+			slog.Info("Matches", "receiver", receiver)
 		}
 	}
 }
