@@ -36,6 +36,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	if len(os.Args) == 1 {
+		flag.Usage()
+		os.Exit(0)
+	}
+
 	labelSets := make(LabelSets)
 	if routestOpts.labels != "" {
 		labels := strings.Split(routestOpts.labels, ",")
@@ -90,6 +95,11 @@ func main() {
 		alertmanagerConfig = string(bytes)
 	}
 
+	if alertmanagerConfig == "" {
+		slog.Error("alertmanager config must be provided either via file or stdin")
+		os.Exit(1)
+	}
+
 	var c config.Config
 	if err := yaml.Unmarshal([]byte(alertmanagerConfig), &c); err != nil {
 		slog.Error("failed to unmarshal alertmanager config", "error", err)
@@ -107,7 +117,7 @@ func main() {
 		routeTree := dispatch.NewRoute(c.Route, nil)
 		routes := routeTree.Match(labelSet)
 
-		results := []string{}
+		var results []string
 		for _, route := range routes {
 			results = append(results, route.RouteOpts.Receiver)
 			if route.Continue {
