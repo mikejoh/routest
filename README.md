@@ -49,6 +49,6 @@ From a file:
 routest -file "alertmanager.yaml" -labels="mylabel=myvalue,severity=critical"
 
 2025/08/14 08:46:53 INFO Reading config file path=alertmanager.yaml
-2025/08/14 08:46:53 INFO Testing with labels labels=mylabel=myvalue,severity=critical
-2025/08/14 08:46:53 INFO Matches receiver receiver=send_to_receiver
+2025/08/14 08:46:53 INFO Testing with labels="{mylabel=\"myvalue\",severity=\"critical\"}"
+2025/08/14 08:46:53 INFO Matches receiver=send_to_receiver
 ```
