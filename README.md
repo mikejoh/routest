@@ -2,8 +2,6 @@
 
 `routest` - Test your Alertmanager route configuration! 🔔
 
-_This tool will only be able to read a config file from `stdin` at the moment._
-
 ## Install
 
 ### From source
@@ -35,16 +33,22 @@ tar xzvf routest_0.1.3_linux_amd64.tar.gz
 
 ## Usage
 
-Example (from `stdin` and Alertmanager configuration from Kubernetes):
+From `stdin`:
 
 ```bash
 kubectl get secrets -n kube-prometheus-stack alertmanager -o jsonpath='{.data.alertmanager\.yaml}' | base64 -d | routest -labels="mylabel=myvalue,severity=critical" -
 
-2024/06/04 23:21:40 Testing with labels: mylabel=myvalue,severity=critical
-2024/06/04 23:21:40 Matches receiver: send_to_receiver
+2025/08/14 08:46:53 INFO No config file provided, reading from stdin...
+2025/08/14 08:46:53 INFO Testing with labels labels=mylabel=myvalue,severity=critical
+2025/08/14 08:46:53 INFO Matches receiver receiver=send_to_receiver
 ```
 
-## Todo
+From a file:
 
-* Add support for reading from a file.
-* Add support for reading from a URL.
+```bash
+routest -file "alertmanager.yaml" -labels="mylabel=myvalue,severity=critical"
+
+2025/08/14 08:46:53 INFO Reading config file path=alertmanager.yaml
+2025/08/14 08:46:53 INFO Testing with labels labels=mylabel=myvalue,severity=critical
+2025/08/14 08:46:53 INFO Matches receiver receiver=send_to_receiver
+```
