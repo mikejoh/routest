@@ -4,6 +4,14 @@
 
 ## Install
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew install mikejoh/routest/routest
+```
+
+Binaries are published automatically to the [mikejoh/homebrew-routest](https://github.com/mikejoh/homebrew-routest) tap on every tagged release via GoReleaser.
+
 ### go install
 
 ```bash
@@ -12,17 +20,7 @@ go install github.com/mikejoh/routest/cmd/routest@latest
 
 ### Prebuilt binaries
 
-Download the archive for your platform from the [releases page](https://github.com/mikejoh/routest/releases/latest), unpack, and move the binary onto your `PATH`.
-
-```bash
-# Linux / macOS — replace VERSION and OS (linux or darwin)
-VERSION=0.2.0
-curl -LO https://github.com/mikejoh/routest/releases/download/v${VERSION}/routest_${VERSION}_linux_amd64.tar.gz
-tar xzf routest_${VERSION}_linux_amd64.tar.gz
-mv routest ~/.local/bin/
-```
-
-Windows users can download `routest_{VERSION}_windows_amd64.tar.gz` from the same page.
+Archives for Linux, macOS, and Windows are attached to every [GitHub release](https://github.com/mikejoh/routest/releases/latest) automatically by GoReleaser. Download the archive for your platform, unpack, and place the binary on your `PATH`.
 
 ### From source
 
