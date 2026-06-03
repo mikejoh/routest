@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/mikejoh/routest/internal/buildinfo"
+	"github.com/mikejoh/routest/internal/ui"
 	"github.com/prometheus/alertmanager/config"
 	"github.com/prometheus/alertmanager/dispatch"
 	"github.com/prometheus/common/model"
@@ -20,6 +21,8 @@ type routestOptions struct {
 	version    bool
 	labels     string
 	configFile string
+	ui         bool
+	port       int
 }
 
 type LabelSets map[string]model.LabelSet
@@ -29,6 +32,8 @@ func main() {
 	flag.BoolVar(&routestOpts.version, "version", false, "Print the version number.")
 	flag.StringVar(&routestOpts.labels, "labels", "", "Comma separated labels in the form of: label=value. Example: -labels=env=dev,severity=critical")
 	flag.StringVar(&routestOpts.configFile, "file", "", "Path to the Alertmanager configuration file.")
+	flag.BoolVar(&routestOpts.ui, "ui", false, "Launch interactive web UI for testing routes in the browser.")
+	flag.IntVar(&routestOpts.port, "port", 0, "Port for the web UI (default: random available port).")
 	flag.Parse()
 
 	if routestOpts.version {
@@ -41,65 +46,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	labelSets := make(LabelSets)
-	if routestOpts.labels != "" {
-		labels := strings.Split(routestOpts.labels, ",")
-		labelSet := make(model.LabelSet)
-		for _, label := range labels {
-			labelParts := strings.Split(label, "=")
-			if len(labelParts) != 2 {
-				slog.Error("invalid label format", "label", label)
-				os.Exit(1)
-			}
-
-			labelSet[model.LabelName(labelParts[0])] = model.LabelValue(labelParts[1])
-		}
-
-		labelSets["custom"] = labelSet
-	}
-
-	if len(labelSets) == 0 {
-		slog.Error("no labels provided, use -labels flag")
+	alertmanagerConfig, err := readConfig(routestOpts.configFile)
+	if err != nil {
+		slog.Error("failed to read config", "error", err)
 		os.Exit(1)
 	}
-
-	var alertmanagerConfig string
-
-	if routestOpts.configFile == "" {
-		slog.Info("No config file provided, reading from stdin...")
-
-		stat, err := os.Stdin.Stat()
-		if err != nil {
-			slog.Error("failed to stat stdin", "error", err)
-			os.Exit(1)
-		}
-
-		if (stat.Mode() & os.ModeCharDevice) == 0 {
-			bytes, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				slog.Error("failed to read from stdin", "error", err)
-				os.Exit(1)
-			}
-
-			alertmanagerConfig = string(bytes)
-		}
-	} else {
-		slog.Info("Reading config file", "path", routestOpts.configFile)
-
-		if _, err := os.Stat(routestOpts.configFile); err != nil {
-			slog.Error("config file does not exist or is not accessible", "path", routestOpts.configFile, "error", err)
-			os.Exit(1)
-		}
-
-		bytes, err := os.ReadFile(routestOpts.configFile)
-		if err != nil {
-			slog.Error("failed to read config file", "path", routestOpts.configFile, "error", err)
-			os.Exit(1)
-		}
-
-		alertmanagerConfig = string(bytes)
-	}
-
 	if alertmanagerConfig == "" {
 		slog.Error("alertmanager config must be provided either via file or stdin")
 		os.Exit(1)
@@ -115,6 +66,39 @@ func main() {
 		slog.Error("alertmanager config is missing a route definition")
 		os.Exit(1)
 	}
+
+	if routestOpts.ui {
+		srv, err := ui.NewServer(&c, routestOpts.port)
+		if err != nil {
+			slog.Error("failed to create UI server", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Opening UI in browser", "url", srv.URL())
+		ui.OpenBrowser(srv.URL())
+		if err := srv.ListenAndServe(); err != nil {
+			slog.Error("UI server error", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if routestOpts.labels == "" {
+		slog.Error("no labels provided, use -labels flag (or -ui for interactive mode)")
+		os.Exit(1)
+	}
+
+	labelSets := make(LabelSets)
+	labels := strings.Split(routestOpts.labels, ",")
+	labelSet := make(model.LabelSet)
+	for _, label := range labels {
+		labelParts := strings.Split(label, "=")
+		if len(labelParts) != 2 {
+			slog.Error("invalid label format", "label", label)
+			os.Exit(1)
+		}
+		labelSet[model.LabelName(labelParts[0])] = model.LabelValue(labelParts[1])
+	}
+	labelSets["custom"] = labelSet
 
 	for _, labelSet := range labelSets {
 		slog.Info("Testing with labels", "labels", labelSet)
@@ -140,4 +124,32 @@ func main() {
 			slog.Info("Matches", "receiver", receiver)
 		}
 	}
+}
+
+func readConfig(file string) (string, error) {
+	if file == "" {
+		slog.Info("No config file provided, reading from stdin...")
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			return "", fmt.Errorf("stat stdin: %w", err)
+		}
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			b, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return "", fmt.Errorf("read stdin: %w", err)
+			}
+			return string(b), nil
+		}
+		return "", nil
+	}
+
+	slog.Info("Reading config file", "path", file)
+	if _, err := os.Stat(file); err != nil {
+		return "", fmt.Errorf("config file not accessible: %w", err)
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return "", fmt.Errorf("read config file: %w", err)
+	}
+	return string(b), nil
 }
