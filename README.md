@@ -4,31 +4,33 @@
 
 ## Install
 
+### go install
+
+```bash
+go install github.com/mikejoh/routest/cmd/routest@latest
+```
+
+### Prebuilt binaries
+
+Download the archive for your platform from the [releases page](https://github.com/mikejoh/routest/releases/latest), unpack, and move the binary onto your `PATH`.
+
+```bash
+# Linux / macOS — replace VERSION and OS (linux or darwin)
+VERSION=0.2.0
+curl -LO https://github.com/mikejoh/routest/releases/download/v${VERSION}/routest_${VERSION}_linux_amd64.tar.gz
+tar xzf routest_${VERSION}_linux_amd64.tar.gz
+mv routest ~/.local/bin/
+```
+
+Windows users can download `routest_{VERSION}_windows_amd64.tar.gz` from the same page.
+
 ### From source
 
-1. `git clone https://github.com/mikejoh/routest.git`
-2. `cd routest`
-3. `make build` (places the compiled binary in `./build/`)
-4. `make install` (copies the compiled binary to `~/.local/bin`)
-
-### Download and run
-
-1. Download (using version `0.1.0` as an example):
-
 ```bash
-curl -LO https://github.com/mikejoh/routest/releases/download/0.1.0/routest_0.1.0_linux_amd64.tar.gz
-```
-
-2. Unpack:
-
-```bash
-tar xzvf routest_0.1.3_linux_amd64.tar.gz
-```
-
-3. Run:
-
-```bash
-./routest -version
+git clone https://github.com/mikejoh/routest.git
+cd routest
+make build    # → ./build/routest
+make install  # → ~/.local/bin/routest
 ```
 
 ## Usage
