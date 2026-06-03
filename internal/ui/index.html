@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>routest — Alertmanager Route Tester</title>
+  <style>
+    :root {
+      --bg:           #0d0e11;
+      --surface:      #141519;
+      --surface-2:    #1b1d23;
+      --surface-3:    #21242d;
+      --border:       #272a35;
+      --border-hi:    #373c4e;
+      --accent:       #e6522c;
+      --accent-h:     #f05e35;
+      --accent-dim:   rgba(230,82,44,.13);
+      --accent-glow:  rgba(230,82,44,.45);
+      --match:        #10b981;
+      --match-dim:    rgba(16,185,129,.1);
+      --match-border: rgba(16,185,129,.42);
+      --match-glow:   rgba(16,185,129,.38);
+      --danger:       #ef4444;
+      --text:         #dde1ed;
+      --text-2:       #868fa8;
+      --text-3:       #31364a;
+      --r:            10px;
+      --r-sm:         6px;
+      --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      --mono: 'JetBrains Mono','Cascadia Code','Fira Code',ui-monospace,monospace;
+      --t: .18s ease;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+    /* ── Header ──────────────────────────────────── */
+    .hdr{
+      display:flex;align-items:center;gap:12px;height:52px;padding:0 20px;
+      background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10;
+    }
+    .logo{display:flex;align-items:center;gap:9px}
+    .logo svg{width:20px;height:20px;flex-shrink:0}
+    .logo-name{font-size:16px;font-weight:700;letter-spacing:-.3px}
+    .logo-name b{color:var(--accent)}
+    .hdr-sep{flex:1}
+    .hdr-pill{
+      display:flex;align-items:center;gap:6px;padding:4px 11px;
+      border-radius:20px;background:var(--surface-3);border:1px solid var(--border);
+      font-size:11px;color:var(--text-2);
+    }
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--match);animation:blink 2.4s ease-in-out infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* ── Shell ───────────────────────────────────── */
+    .app{display:flex;height:calc(100vh - 52px)}
+
+    /* ── Sidebar ─────────────────────────────────── */
+    .sb{
+      width:272px;flex-shrink:0;display:flex;flex-direction:column;
+      background:var(--surface);border-right:1px solid var(--border);overflow:hidden;
+    }
+    .sb-body{flex:1;overflow-y:auto;padding:18px}
+    .sb-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+    .sec-lbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);margin-bottom:11px}
+
+    #labelList{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+    .lrow{display:grid;grid-template-columns:1fr 1fr 26px;gap:5px;align-items:center}
+    .inp{
+      width:100%;padding:6px 9px;background:var(--surface-3);border:1px solid var(--border);
+      border-radius:var(--r-sm);color:var(--text);font-size:12px;font-family:var(--mono);outline:none;
+      transition:border-color var(--t),box-shadow var(--t);
+    }
+    .inp::placeholder{color:var(--text-3)}
+    .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+    .btn-rm{
+      width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+      background:transparent;border:1px solid var(--border);border-radius:var(--r-sm);
+      color:var(--text-2);cursor:pointer;font-size:16px;transition:all var(--t);
+    }
+    .btn-rm:hover{background:rgba(239,68,68,.1);border-color:var(--danger);color:var(--danger)}
+    .btn-add{
+      width:100%;padding:6px;background:transparent;border:1px dashed var(--border);
+      border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;font-size:12px;transition:all var(--t);
+    }
+    .btn-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+    .btn-primary{
+      width:100%;padding:9px;border-radius:var(--r);background:var(--accent);border:none;
+      color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t);
+      position:relative;overflow:hidden;
+    }
+    .btn-primary:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px var(--accent-glow)}
+    .btn-primary:active{transform:none;box-shadow:none}
+    .btn-primary.loading::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+      transform:translateX(-100%);animation:shim .85s ease-in-out infinite;
+    }
+    @keyframes shim{to{transform:translateX(100%)}}
+    .btn-ghost{
+      width:100%;padding:7px;border-radius:var(--r);background:transparent;
+      border:1px solid var(--border);color:var(--text-2);font-size:12px;cursor:pointer;transition:all var(--t);
+    }
+    .btn-ghost:hover{border-color:var(--border-hi);color:var(--text)}
+    .kb-note{font-size:10px;color:var(--text-3);text-align:center}
+    kbd{display:inline-block;padding:1px 4px;border-radius:3px;background:var(--surface-3);border:1px solid var(--border);font-size:9px;color:var(--text-2);font-family:var(--mono)}
+
+    /* ── Canvas area ─────────────────────────────── */
+    .canvas-wrap{flex:1;overflow:auto;position:relative}
+    .canvas-inner{
+      position:relative;min-width:820px;
+      /* dot grid background */
+      background-color:var(--bg);
+      background-image:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1px);
+      background-size:22px 22px;
+    }
+    .svg-layer{position:absolute;top:0;left:0;width:100%;pointer-events:none}
+
+    /* ── Generic node ────────────────────────────── */
+    .node{
+      position:absolute;border:1px solid var(--border);border-radius:var(--r);
+      background:var(--surface);transition:border-color .3s,background .3s,box-shadow .3s,opacity .3s;
+    }
+
+    /* ── Labels node ─────────────────────────────── */
+    .node-labels{min-width:178px}
+    .node-labels.active{
+      border-color:rgba(230,82,44,.5);background:var(--accent-dim);
+      animation:pulse-accent 2s ease-in-out infinite;
+    }
+    @keyframes pulse-accent{
+      0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}
+      50%{box-shadow:0 0 0 9px rgba(230,82,44,0)}
+    }
+    .node-hdr{
+      display:flex;align-items:center;gap:7px;
+      padding:9px 12px 8px;border-bottom:1px solid var(--border);
+    }
+    .node-icon{
+      width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:800;flex-shrink:0;color:#fff;
+    }
+    .node-title{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em}
+    .node-body{padding:8px 12px 10px;overflow:hidden}
+    .lp-row{display:flex;align-items:center;gap:4px;font-size:11px;font-family:var(--mono);margin-bottom:2px;min-width:0}
+    .lp-key{color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;max-width:45%}
+    .lp-eq{color:var(--text-3);flex-shrink:0}
+    .lp-val{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    .node-labels.active .lp-val{color:#e6522c}
+    .node-placeholder{font-size:11px;color:var(--text-3);font-style:italic}
+
+    /* ── Receiver node ───────────────────────────── */
+    .node-rcv{width:184px}
+    .node-rcv .rcv-name{
+      padding:11px 14px 5px;font-family:var(--mono);font-size:12px;font-weight:500;
+      color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .node-rcv .rcv-status{
+      display:flex;align-items:center;gap:6px;padding:0 14px 11px;
+    }
+    .sdot{width:6px;height:6px;border-radius:50%;background:var(--border-hi);flex-shrink:0;transition:background .3s}
+    .stxt{font-size:10px;color:var(--text-3);transition:color .3s}
+    .node-rcv.matched .rcv-name{color:var(--match)}
+    .node-rcv.matched .sdot{background:var(--match);animation:dotblink 1.6s ease-in-out infinite}
+    .node-rcv.matched .stxt{color:var(--match)}
+    .node-rcv.matched{
+      border-color:var(--match-border);background:var(--match-dim);
+      animation:pulse-match 2s ease-in-out infinite;
+    }
+    .node-rcv.unmatched{opacity:.2}
+    @keyframes pulse-match{
+      0%,100%{box-shadow:0 0 0 0 var(--match-glow)}
+      50%{box-shadow:0 0 0 9px rgba(16,185,129,0)}
+    }
+    @keyframes dotblink{0%,100%{opacity:1}50%{opacity:.35}}
+
+    /* ── Type node ───────────────────────────────── */
+    .node-type{
+      display:flex;align-items:center;gap:9px;
+      padding:10px 13px;width:158px;
+    }
+    .type-badge{
+      width:30px;height:30px;border-radius:7px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:800;letter-spacing:.04em;color:#fff;
+      /* background set inline */
+    }
+    .type-name{font-size:12px;font-weight:500;color:var(--text-2)}
+    .node-type.matched{border-color:var(--match-border);background:var(--match-dim);animation:pulse-match 2s ease-in-out infinite}
+    .node-type.matched .type-name{color:var(--text)}
+    .node-type.unmatched{opacity:.2}
+
+    /* ── Column labels ───────────────────────────── */
+    .col-lbl{
+      position:absolute;font-size:10px;font-weight:600;letter-spacing:.1em;
+      text-transform:uppercase;color:var(--text-3);pointer-events:none;user-select:none;
+    }
+
+    /* ── SVG edge keyframe ───────────────────────── */
+    @keyframes flow{to{stroke-dashoffset:-30}}
+    .edge-flow{animation:flow .55s linear infinite}
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--border-hi)}
+  </style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo">
+    <svg viewBox="0 0 20 20" fill="none">
+      <path d="M10 1.5C7.2 4.2 6 7 7 9.8c.4 1.3 1.3 2.2 2.1 2.6C8.4 10.4 9.8 8.6 9.8 7c.9 1.7 1.3 4 .1 6.2C11.3 12 13 10 12.5 7.7 14 10 13.8 13 12 15c1.7 0 4.5-2.2 4.5-5.5C16.5 5.2 13.4 1.8 10 1.5z" fill="#e6522c"/>
+      <ellipse cx="10" cy="17" rx="2.8" ry="1.8" fill="#e6522c" opacity=".65"/>
+    </svg>
+    <span class="logo-name">route<b>st</b></span>
+  </div>
+  <span class="hdr-sep"></span>
+  <div class="hdr-pill"><span class="live-dot"></span>Alertmanager Route Tester</div>
+</header>
+
+<div class="app">
+  <aside class="sb">
+    <div class="sb-body">
+      <div class="sec-lbl">Alert Labels</div>
+      <div id="labelList"></div>
+      <button class="btn-add" id="addBtn">+ Add Label</button>
+    </div>
+    <div class="sb-foot">
+      <button class="btn-primary" id="testBtn">Test Route</button>
+      <button class="btn-ghost"   id="resetBtn">Reset</button>
+      <div class="kb-note">Press <kbd>↵</kbd> in any field to test</div>
+    </div>
+  </aside>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <div class="canvas-inner" id="ci">
+      <svg class="svg-layer" id="svgEl">
+        <defs>
+          <marker id="ah-match"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#10b981"/></marker>
+          <marker id="ah-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e6522c"/></marker>
+          <marker id="ah-dim"    markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2a2e3d"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ── Type metadata ──────────────────────────────────────────── */
+const TYPES = {
+  discord:    {c:'#5865F2', label:'Discord',      ab:'DC'},
+  email:      {c:'#E74C3C', label:'Email',         ab:'EM'},
+  incidentio: {c:'#6366F1', label:'incident.io',  ab:'II'},
+  jira:       {c:'#0052CC', label:'Jira',          ab:'JR'},
+  mattermost: {c:'#0072C6', label:'Mattermost',    ab:'MM'},
+  msteams:    {c:'#6264A7', label:'MS Teams',      ab:'MS'},
+  msteamsv2:  {c:'#6264A7', label:'MS Teams v2',   ab:'M2'},
+  opsgenie:   {c:'#1ABC9C', label:'OpsGenie',      ab:'OG'},
+  pagerduty:  {c:'#27AE60', label:'PagerDuty',     ab:'PD'},
+  pushover:   {c:'#2DB6F3', label:'Pushover',      ab:'PO'},
+  rocketchat: {c:'#F5455C', label:'Rocket.Chat',   ab:'RC'},
+  slack:      {c:'#9B59B6', label:'Slack',          ab:'SL'},
+  sns:        {c:'#FF9900', label:'AWS SNS',        ab:'SN'},
+  telegram:   {c:'#0088CC', label:'Telegram',      ab:'TG'},
+  victorops:  {c:'#F8C200', label:'VictorOps',     ab:'VO'},
+  webex:      {c:'#00BEF3', label:'Webex',          ab:'WX'},
+  webhook:    {c:'#E67E22', label:'Webhook',        ab:'WH'},
+  wechat:     {c:'#07C160', label:'WeChat',         ab:'WC'},
+};
+const tmeta = t => TYPES[t] || {c:'#6B7280', label: t.charAt(0).toUpperCase()+t.slice(1), ab: t.slice(0,2).toUpperCase()};
+
+/* ── State ──────────────────────────────────────────────────── */
+const st = {
+  receivers:   [],   // [{name, types[]}]
+  uniqTypes:   [],   // unique type strings, sorted
+  matched:     new Set(),
+  tested:      false,
+  labels:      {},
+};
+
+/* Layout cache */
+const lay = {labels:null, receivers:[], types:{}};
+
+/* Sizes (px) */
+const S = {lW:180, rW:184, rH:66, tW:158, tH:52, rGap:14, tGap:12, padX:64, padY:80};
+
+/* ── DOM ────────────────────────────────────────────────────── */
+const $ci  = document.getElementById('ci');
+const $svg = document.getElementById('svgEl');
+const $ll  = document.getElementById('labelList');
+const SVG  = 'http://www.w3.org/2000/svg';
+
+/* ── Boot ───────────────────────────────────────────────────── */
+async function init() {
+  const d = await (await fetch('/api/config')).json();
+  st.receivers = d.receivers || [];
+  st.uniqTypes = [...new Set(st.receivers.flatMap(r => r.types||[]))].sort();
+  buildNodes();
+  layout();
+  drawEdges();
+  addRow();
+  window.addEventListener('resize', debounce(() => { layout(); drawEdges(); }, 140));
+}
+
+/* ── Build DOM nodes (once) ─────────────────────────────────── */
+function buildNodes() {
+  /* Labels node */
+  const ln = mkEl('div','node node-labels','nd-labels');
+  ln.innerHTML = `
+    <div class="node-hdr">
+      <div class="node-icon" style="background:rgba(230,82,44,.25);color:#e6522c">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 14h14L8 1z" stroke="#e6522c" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v.5" stroke="#e6522c" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <span class="node-title">Alert</span>
+    </div>
+    <div class="node-body" id="labelsBody"><span class="node-placeholder">Add alert labels to test</span></div>`;
+  $ci.appendChild(ln);
+
+  /* Column labels */
+  [['cl-l','Alert'],['cl-r','Receivers'],['cl-t','Integrations']].forEach(([id,txt]) => {
+    const d = mkEl('div','col-lbl',id);
+    d.textContent = txt;
+    $ci.appendChild(d);
+  });
+
+  /* Receiver nodes */
+  st.receivers.forEach((rcv,i) => {
+    const d = mkEl('div','node node-rcv','nd-r-'+i);
+    d.innerHTML = `<div class="rcv-name" title="${esc(rcv.name)}">${esc(rcv.name)}</div>
+      <div class="rcv-status"><span class="sdot"></span><span class="stxt">receiver</span></div>`;
+    $ci.appendChild(d);
+  });
+
+  /* Type nodes */
+  st.uniqTypes.forEach(type => {
+    const m = tmeta(type);
+    const d = mkEl('div','node node-type','nd-t-'+type);
+    d.innerHTML = `<div class="type-badge" style="background:${m.c}">${m.ab}</div><div class="type-name">${esc(m.label)}</div>`;
+    $ci.appendChild(d);
+  });
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+function layout() {
+  const CW = $ci.offsetWidth || 900;
+  const {lW,rW,rH,tW,tH,rGap,tGap,padX,padY} = S;
+  const nR = st.receivers.length, nT = st.uniqTypes.length;
+
+  const rTotalH = nR * rH + Math.max(0,nR-1) * rGap;
+  const tTotalH = nT * tH + Math.max(0,nT-1) * tGap;
+  const lh = 50 + Math.max(1, Object.keys(st.labels).length) * 24;
+  const canH = Math.max(window.innerHeight - 52, Math.max(rTotalH,tTotalH) + 2*padY);
+
+  $ci.style.height = canH + 'px';
+  $svg.setAttribute('height', canH);
+
+  /* Column X anchors */
+  const c1 = padX;
+  const c2 = Math.round(CW * 0.40);
+  const c3 = Math.round(CW * 0.74);
+
+  const rStartY  = Math.round((canH - rTotalH) / 2);
+  const tStartY  = Math.round((canH - tTotalH) / 2);
+  const lStartY  = Math.round(rStartY + (rTotalH - lh) / 2);
+
+  lay.labels = {x:c1, y:lStartY, w:lW, h:lh};
+  pos('nd-labels', c1, lStartY, lW, lh);
+
+  pos('cl-l', c1,          padY/2 - 12, null, null);
+  pos('cl-r', c2 - rW/2,   padY/2 - 12, null, null);
+  pos('cl-t', c3 - tW/2,   padY/2 - 12, null, null);
+
+  lay.receivers = st.receivers.map((rcv,i) => {
+    const x = c2 - rW/2, y = rStartY + i*(rH+rGap);
+    pos('nd-r-'+i, x, y, rW, rH);
+    return {x,y,w:rW,h:rH,name:rcv.name};
+  });
+
+  lay.types = {};
+  st.uniqTypes.forEach((type,i) => {
+    const x = c3 - tW/2, y = tStartY + i*(tH+tGap);
+    pos('nd-t-'+type, x, y, tW, tH);
+    lay.types[type] = {x,y,w:tW,h:tH};
+  });
+}
+
+function pos(id, x, y, w, h) {
+  const d = document.getElementById(id);
+  if (!d) return;
+  d.style.left = x+'px';
+  d.style.top  = y+'px';
+  if (w) d.style.width  = w+'px';
+  if (h) d.style.height = h+'px';
+}
+
+/* ── Draw edges ─────────────────────────────────────────────── */
+function drawEdges() {
+  $svg.querySelectorAll('path').forEach(p => p.remove());
+  if (!lay.labels) return;
+
+  /* Receiver → type (always; dim unless matched) */
+  st.receivers.forEach((rcv,i) => {
+    const rp = lay.receivers[i]; if (!rp) return;
+    const isMatch = st.matched.has(rcv.name);
+    (rcv.types||[]).forEach(type => {
+      const tp = lay.types[type]; if (!tp) return;
+      edge(rp.x+rp.w, rp.y+rp.h/2, tp.x, tp.y+tp.h/2, isMatch ? 'match' : 'dim');
+    });
+  });
+
+  /* Labels → matched receivers */
+  if (st.tested) {
+    st.receivers.forEach((rcv,i) => {
+      if (!st.matched.has(rcv.name)) return;
+      const rp = lay.receivers[i]; if (!rp) return;
+      edge(lay.labels.x+lay.labels.w, lay.labels.y+lay.labels.h/2, rp.x, rp.y+rp.h/2, 'accent');
+    });
+  }
+}
+
+function edge(x1,y1,x2,y2,kind) {
+  const p = document.createElementNS(SVG,'path');
+  const dx = (x2-x1)*0.46;
+  p.setAttribute('d', `M${x1} ${y1} C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}`);
+  p.setAttribute('fill','none');
+  if (kind === 'dim') {
+    p.setAttribute('stroke','#25283a');
+    p.setAttribute('stroke-width','1.5');
+    p.setAttribute('stroke-dasharray','5 8');
+    p.setAttribute('marker-end','url(#ah-dim)');
+    p.setAttribute('opacity','0.55');
+  } else if (kind === 'match') {
+    p.setAttribute('stroke','#10b981');
+    p.setAttribute('stroke-width','2');
+    p.setAttribute('stroke-dasharray','9 5');
+    p.setAttribute('marker-end','url(#ah-match)');
+    p.setAttribute('class','edge-flow');
+  } else {
+    p.setAttribute('stroke','#e6522c');
+    p.setAttribute('stroke-width','2');
+    p.setAttribute('stroke-dasharray','9 5');
+    p.setAttribute('marker-end','url(#ah-accent)');
+    p.setAttribute('class','edge-flow');
+  }
+  $svg.appendChild(p);
+}
+
+/* ── Update node visual states ──────────────────────────────── */
+function updateStates() {
+  /* Labels node */
+  const ln = document.getElementById('nd-labels');
+  ln && ln.classList.toggle('active', st.tested && Object.keys(st.labels).length > 0);
+
+  /* Receiver nodes */
+  st.receivers.forEach((rcv,i) => {
+    const d = document.getElementById('nd-r-'+i); if (!d) return;
+    const m = st.matched.has(rcv.name);
+    d.classList.toggle('matched',   st.tested &&  m);
+    d.classList.toggle('unmatched', st.tested && !m);
+    const stxt = d.querySelector('.stxt');
+    if (stxt) stxt.textContent = !st.tested ? 'receiver' : (m ? 'matched' : 'no match');
+  });
+
+  /* Type nodes */
+  const activeTypes = new Set(
+    st.receivers.filter(r=>st.matched.has(r.name)).flatMap(r=>r.types||[])
+  );
+  st.uniqTypes.forEach(type => {
+    const d = document.getElementById('nd-t-'+type); if (!d) return;
+    const a = activeTypes.has(type);
+    d.classList.toggle('matched',   st.tested &&  a);
+    d.classList.toggle('unmatched', st.tested && !a);
+  });
+}
+
+/* ── Update labels node body ────────────────────────────────── */
+function refreshLabelsNode() {
+  const body = document.getElementById('labelsBody');
+  if (!body) return;
+  const entries = Object.entries(st.labels);
+  body.innerHTML = entries.length
+    ? entries.map(([k,v])=>`<div class="lp-row"><span class="lp-key">${esc(k)}</span><span class="lp-eq">=</span><span class="lp-val">${esc(v)}</span></div>`).join('')
+    : '<span class="node-placeholder">Add alert labels to test</span>';
+  layout(); /* recompute height */
+}
+
+/* ── Label input rows ───────────────────────────────────────── */
+function addRow(k='',v='') {
+  const row = document.createElement('div');
+  row.className = 'lrow';
+  row.innerHTML =
+    `<input class="inp lk" type="text" placeholder="label" value="${esc(k)}" spellcheck="false" autocomplete="off">`+
+    `<input class="inp lv" type="text" placeholder="value" value="${esc(v)}" spellcheck="false" autocomplete="off">`+
+    `<button class="btn-rm">×</button>`;
+  row.querySelector('.btn-rm').onclick = () => row.remove();
+  row.querySelectorAll('.inp').forEach(inp => inp.addEventListener('keydown', e => e.key==='Enter' && test()));
+  $ll.appendChild(row);
+  row.querySelector('.lk').focus();
+}
+
+function getLabels() {
+  const out = {};
+  $ll.querySelectorAll('.lrow').forEach(row => {
+    const k = row.querySelector('.lk').value.trim();
+    const v = row.querySelector('.lv').value.trim();
+    if (k) out[k] = v;
+  });
+  return out;
+}
+
+/* ── Test ───────────────────────────────────────────────────── */
+async function test() {
+  const btn = document.getElementById('testBtn');
+  btn.classList.add('loading');
+  btn.textContent = 'Testing…';
+  try {
+    const labels = getLabels();
+    const res  = await fetch('/api/match', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({labels}),
+    });
+    const data = await res.json();
+    st.labels  = labels;
+    st.matched = new Set(data.matched_receivers||[]);
+    st.tested  = true;
+    refreshLabelsNode();
+    updateStates();
+    drawEdges();
+  } catch(e) { console.error(e); }
+  finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'Test Route';
+  }
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+function reset() {
+  st.matched = new Set(); st.tested = false; st.labels = {};
+  $ll.innerHTML = '';
+  refreshLabelsNode();
+  updateStates();
+  drawEdges();
+  addRow();
+}
+
+/* ── Helpers ────────────────────────────────────────────────── */
+function mkEl(tag,cls,id) {
+  const d = document.createElement(tag);
+  if (cls) d.className = cls;
+  if (id)  d.id = id;
+  return d;
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function debounce(fn,ms) { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+
+/* ── Wire ───────────────────────────────────────────────────── */
+document.getElementById('addBtn').addEventListener('click',  () => addRow());
+document.getElementById('testBtn').addEventListener('click', test);
+document.getElementById('resetBtn').addEventListener('click', reset);
+
+init();
+</script>
+</body>
+</html>
