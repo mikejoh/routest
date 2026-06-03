@@ -58,6 +58,11 @@ func main() {
 		labelSets["custom"] = labelSet
 	}
 
+	if len(labelSets) == 0 {
+		slog.Error("no labels provided, use -labels flag")
+		os.Exit(1)
+	}
+
 	var alertmanagerConfig string
 
 	if routestOpts.configFile == "" {
@@ -81,7 +86,7 @@ func main() {
 	} else {
 		slog.Info("Reading config file", "path", routestOpts.configFile)
 
-		if _, err := os.Stat(routestOpts.configFile); os.IsNotExist(err) || os.IsPermission(err) {
+		if _, err := os.Stat(routestOpts.configFile); err != nil {
 			slog.Error("config file does not exist or is not accessible", "path", routestOpts.configFile, "error", err)
 			os.Exit(1)
 		}
@@ -106,6 +111,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if c.Route == nil {
+		slog.Error("alertmanager config is missing a route definition")
+		os.Exit(1)
+	}
+
 	for _, labelSet := range labelSets {
 		slog.Info("Testing with labels", "labels", labelSet)
 
@@ -120,9 +130,7 @@ func main() {
 		var results []string
 		for _, route := range routes {
 			results = append(results, route.RouteOpts.Receiver)
-			if route.Continue {
-				continue
-			} else {
+			if !route.Continue {
 				break
 			}
 		}
