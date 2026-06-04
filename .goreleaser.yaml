@@ -18,6 +18,7 @@ builds:
       - -s -w -X=github.com/mikejoh/routest/internal/buildinfo.Version={{ .Version }} -X=github.com/mikejoh/routest/internal/buildinfo.Name=routest -X=github.com/mikejoh/routest/internal/buildinfo.GitSHA={{ .Commit }}
 homebrew_casks:
   - name: routest
+    skip_upload: "{{ if .Env.HOMEBREW_TAP_GITHUB_TOKEN }}false{{ else }}true{{ end }}"
     repository:
       owner: mikejoh
       name: homebrew-routest
