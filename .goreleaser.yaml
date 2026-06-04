@@ -4,7 +4,7 @@ release:
   github:
     owner: mikejoh
     name: routest
-  name_template: 'v{{ .Tag }}'
+  name_template: '{{ .Tag }}'
 builds:
   - id: routest
     targets:
