@@ -14,27 +14,22 @@ builds:
     dir: .
     main: ./cmd/routest/
     binary: routest
-    builder: go
-    gobinary: go
-    command: build
     ldflags:
       - -s -w -X=github.com/mikejoh/routest/internal/buildinfo.Version={{ .Version }} -X=github.com/mikejoh/routest/internal/buildinfo.Name=routest -X=github.com/mikejoh/routest/internal/buildinfo.GitSHA={{ .Commit }}
-brews:
+homebrew_casks:
   - name: routest
     repository:
       owner: mikejoh
       name: homebrew-routest
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
+    directory: Casks
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    commit_msg_template: "chore: update routest formula to {{ .Tag }}"
+    commit_msg_template: "chore: update routest cask to {{ .Tag }}"
     homepage: "https://github.com/mikejoh/routest"
     description: "Test your Alertmanager route configuration"
-    install: |
-      bin.install "routest"
-    test: |
-      system "#{bin}/routest", "-version"
+    binaries:
+      - routest
 
 dist: ./build
