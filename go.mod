@@ -3,7 +3,7 @@ module github.com/mikejoh/routest
 go 1.26.1
 
 require (
-	github.com/prometheus/alertmanager v0.32.1
+	github.com/prometheus/alertmanager v0.32.2
 	github.com/prometheus/common v0.68.0
 	gopkg.in/yaml.v3 v3.0.1
 )
